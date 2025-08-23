@@ -101,7 +101,7 @@
 
         .file-input-wrapper {
             position: relative;
-            display: inline-block;
+            display: block;
             cursor: pointer;
             background: #f8f9fa;
             border: 2px dashed #667eea;
@@ -109,6 +109,8 @@
             padding: 40px;
             text-align: center;
             transition: all 0.3s ease;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .file-input-wrapper:hover {
@@ -122,6 +124,24 @@
             width: 100%;
             height: 100%;
             cursor: pointer;
+            top: 0;
+            left: 0;
+        }
+
+        /* 移动端优化 */
+        .file-input-wrapper.mobile-optimized input[type="file"] {
+            position: static;
+            opacity: 1;
+            width: 100%;
+            height: auto;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 16px; /* 防止iOS缩放 */
+        }
+
+        .file-input-wrapper.mobile-optimized .file-input-text {
+            display: none;
         }
 
         .file-input-text {
@@ -179,6 +199,29 @@
             .upload-section {
                 padding: 20px;
             }
+
+            .file-input-wrapper {
+                padding: 20px;
+                min-height: 120px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .file-input-text {
+                font-size: 0.9rem;
+            }
+
+            /* 移动端文件输入优化 */
+            .file-input-wrapper input[type="file"] {
+                font-size: 16px; /* 防止iOS自动缩放 */
+            }
+
+            /* 触摸友好的按钮 */
+            .upload-btn {
+                min-height: 48px;
+                font-size: 1.1rem;
+            }
         }
     </style>
 </head>
@@ -209,7 +252,7 @@
                 <div class="form-group">
                     <label>音频文件 *</label>
                     <div class="file-input-wrapper">
-                        <input type="file" id="audioFile" name="audio" accept="audio/*" required>
+                        <input type="file" id="audioFile" name="audio" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg" required>
                         <div class="file-input-text">
                             <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; margin-bottom: 10px;"></i>
                             <div>点击选择音频文件或拖拽到此处</div>
@@ -228,30 +271,107 @@
     <script>
         class UploadApp {
             constructor() {
+                this.isMobile = this.detectMobile();
                 this.init();
             }
 
+            detectMobile() {
+                return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                       (window.innerWidth <= 768);
+            }
+
             init() {
+                this.optimizeForMobile();
                 this.bindEvents();
+            }
+
+            optimizeForMobile() {
+                if (this.isMobile) {
+                    const fileWrapper = document.querySelector('.file-input-wrapper');
+                    const fileInput = document.getElementById('audioFile');
+                    
+                    // 为移动端优化文件输入
+                    fileWrapper.classList.add('mobile-optimized');
+                    
+                    // 添加移动端特定属性
+                    fileInput.setAttribute('capture', 'user');
+                    
+                    // 优化文件选择提示
+                    const fileText = document.querySelector('.file-input-text');
+                    if (fileText) {
+                        fileText.innerHTML = `
+                            <i class="fas fa-mobile-alt" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                            <div>点击选择音频文件</div>
+                            <div style="font-size: 0.8rem; color: #999; margin-top: 5px;">支持 MP3, WAV, M4A 等格式</div>
+                        `;
+                    }
+                }
             }
 
             bindEvents() {
                 const uploadForm = document.getElementById('uploadForm');
                 const fileInput = document.getElementById('audioFile');
+                const fileWrapper = document.querySelector('.file-input-wrapper');
                 
                 uploadForm.addEventListener('submit', (e) => this.handleUpload(e));
                 
                 // 文件选择提示
                 fileInput.addEventListener('change', (e) => {
-                    const fileText = document.querySelector('.file-input-text');
-                    if (e.target.files.length > 0) {
-                        const fileName = e.target.files[0].name;
+                    this.handleFileSelection(e);
+                });
+
+                // 移动端触摸优化
+                if (this.isMobile) {
+                    fileWrapper.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        fileInput.click();
+                    });
+                }
+
+                // 拖拽上传（桌面端）
+                if (!this.isMobile) {
+                    fileWrapper.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        fileWrapper.style.borderColor = '#5a67d8';
+                        fileWrapper.style.background = '#e9ecef';
+                    });
+
+                    fileWrapper.addEventListener('dragleave', (e) => {
+                        e.preventDefault();
+                        fileWrapper.style.borderColor = '#667eea';
+                        fileWrapper.style.background = '#f8f9fa';
+                    });
+
+                    fileWrapper.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        fileWrapper.style.borderColor = '#667eea';
+                        fileWrapper.style.background = '#f8f9fa';
+                        
+                        const files = e.dataTransfer.files;
+                        if (files.length > 0 && files[0].type.startsWith('audio/')) {
+                            fileInput.files = files;
+                            this.handleFileSelection({ target: { files: files } });
+                        }
+                    });
+                }
+            }
+
+            handleFileSelection(e) {
+                const fileText = document.querySelector('.file-input-text');
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    const fileName = file.name;
+                    const fileSize = (file.size / (1024 * 1024)).toFixed(2);
+                    
+                    if (fileText) {
                         fileText.innerHTML = `
-                            <i class="fas fa-file-audio" style="font-size: 2rem; margin-bottom: 10px;"></i>
-                            <div>已选择: ${fileName}</div>
+                            <i class="fas fa-file-audio" style="font-size: 2rem; margin-bottom: 10px; color: #28a745;"></i>
+                            <div style="color: #28a745; font-weight: bold;">已选择: ${fileName}</div>
+                            <div style="font-size: 0.8rem; color: #999; margin-top: 5px;">文件大小: ${fileSize} MB</div>
+                            <div style="font-size: 0.8rem; color: #999;">点击重新选择</div>
                         `;
                     }
-                });
+                }
             }
 
             async handleUpload(e) {
