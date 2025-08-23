@@ -8,16 +8,16 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// 数据存储路径配置
+const DATA_DIR = process.env.NODE_ENV === 'production' ? '/opt/render/project/src/data' : './data';
+const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
+const DB_PATH = path.join(DATA_DIR, 'podcast.db');
+
 // 中间件
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 app.use('/uploads', express.static(UPLOADS_DIR));
-
-// 数据存储路径配置
-const DATA_DIR = process.env.NODE_ENV === 'production' ? '/opt/render/project/src/data' : './data';
-const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
-const DB_PATH = path.join(DATA_DIR, 'podcast.db');
 
 // 确保数据目录和uploads目录存在
 fs.ensureDirSync(DATA_DIR);

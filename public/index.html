@@ -1175,12 +1175,48 @@
             }
 
             previousTrack() {
-                // 如果有多个播客，可以切换到上一个
+                if (!this.currentPodcast || this.allPodcasts.length <= 1) {
+                    this.showSkipFeedback('没有上一首');
+                    return;
+                }
+                
+                // 找到当前播客在列表中的位置
+                const currentIndex = this.allPodcasts.findIndex(p => p.id === this.currentPodcast.id);
+                if (currentIndex === -1) return;
+                
+                // 获取上一首（如果是第一首，则跳到最后一首）
+                const prevIndex = currentIndex === this.allPodcasts.length - 1 ? 0 : currentIndex + 1;
+                const prevPodcast = this.allPodcasts[prevIndex];
+                
+                // 播放上一首
+                this.openFullscreenPlayer(
+                    prevPodcast.filename, 
+                    prevPodcast.title, 
+                    this.allPodcasts.length - prevIndex
+                );
                 this.showSkipFeedback('上一首');
             }
 
             nextTrack() {
-                // 如果有多个播客，可以切换到下一个
+                if (!this.currentPodcast || this.allPodcasts.length <= 1) {
+                    this.showSkipFeedback('没有下一首');
+                    return;
+                }
+                
+                // 找到当前播客在列表中的位置
+                const currentIndex = this.allPodcasts.findIndex(p => p.id === this.currentPodcast.id);
+                if (currentIndex === -1) return;
+                
+                // 获取下一首（如果是最后一首，则跳到第一首）
+                const nextIndex = currentIndex === 0 ? this.allPodcasts.length - 1 : currentIndex - 1;
+                const nextPodcast = this.allPodcasts[nextIndex];
+                
+                // 播放下一首
+                this.openFullscreenPlayer(
+                    nextPodcast.filename, 
+                    nextPodcast.title, 
+                    this.allPodcasts.length - nextIndex
+                );
                 this.showSkipFeedback('下一首');
             }
 
