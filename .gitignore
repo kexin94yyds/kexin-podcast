@@ -1,6 +1,10 @@
 # 依赖包
 node_modules/
 
+# SQLite3编译文件
+node_modules/sqlite3/build/
+build/
+
 # 数据库文件
 *.db
 *.sqlite
