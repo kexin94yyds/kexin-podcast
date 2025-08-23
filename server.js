@@ -147,7 +147,7 @@ app.post('/api/upload', upload.single('audio'), (req, res) => {
   }
 
   // 获取文件信息
-  const filename = useCloudinary ? req.file.filename : req.file.filename;
+  const filename = useCloudinary ? req.file.public_id : req.file.filename;
   const fileUrl = useCloudinary ? req.file.path : `/uploads/${req.file.filename}`;
   
   const stmt = db.prepare(`INSERT INTO podcasts (title, description, filename, originalname, filesize, file_url) 
