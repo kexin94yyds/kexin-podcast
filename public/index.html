@@ -395,6 +395,20 @@
             color: rgba(229, 229, 231, 0.8);
         }
 
+        .podcast-details {
+            padding: 40px 0;
+        }
+
+        .details-content {
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
         .podcast-list {
             display: grid;
             gap: 25px;
@@ -864,14 +878,27 @@
                 播客列表
             </h2>
             <div class="tab-nav">
-                <button class="tab-btn active">单集更新</button>
-                <button class="tab-btn">节目详情</button>
+                <button class="tab-btn active" onclick="app.switchTab('episodes')">单集更新</button>
+                <button class="tab-btn" onclick="app.switchTab('details')">节目详情</button>
             </div>
             <div id="messageContainer"></div>
             <div id="podcastsList" class="podcast-list">
                 <div class="loading">
                     <div class="spinner"></div>
                     正在加载播客列表...
+                </div>
+            </div>
+            <div id="podcastDetails" class="podcast-details" style="display: none;">
+                <div class="details-content">
+                    <h3 style="color: #F5F5DC; margin-bottom: 20px; font-size: 1.5rem;">关于这个播客</h3>
+                    <p style="color: rgba(229, 229, 231, 0.8); line-height: 1.6; font-size: 1.1rem; text-align: center; margin: 40px 0;">
+                        仅以此献给成长的人
+                    </p>
+                    <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 20px; margin-top: 30px;">
+                        <p style="color: rgba(229, 229, 231, 0.6); font-size: 0.9rem; text-align: center;">
+                            在这里分享思考、感悟和成长的故事
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -979,6 +1006,25 @@
 
             bindEvents() {
                 // 主页不需要上传相关的事件绑定
+            }
+
+            switchTab(tab) {
+                // 移除所有active类
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                // 添加active类到当前按钮
+                event.target.classList.add('active');
+                
+                // 显示/隐藏对应内容
+                if (tab === 'episodes') {
+                    document.getElementById('podcastsList').style.display = 'grid';
+                    document.getElementById('podcastDetails').style.display = 'none';
+                } else if (tab === 'details') {
+                    document.getElementById('podcastsList').style.display = 'none';
+                    document.getElementById('podcastDetails').style.display = 'block';
+                }
             }
 
 
