@@ -147,8 +147,22 @@ app.post('/api/upload', upload.single('audio'), (req, res) => {
   }
 
   // 获取文件信息
-  const filename = useCloudinary ? req.file.public_id : req.file.filename;
+  const filename = useCloudinary ? (req.file.public_id || req.file.filename) : req.file.filename;
   const fileUrl = useCloudinary ? req.file.path : `/uploads/${req.file.filename}`;
+  
+  // 调试日志
+  console.log('📁 文件上传信息:', {
+    useCloudinary,
+    filename,
+    fileUrl,
+    originalname: req.file.originalname,
+    size: req.file.size
+  });
+  
+  // 验证必需字段
+  if (!filename) {
+    return res.status(400).json({ error: '文件名获取失败' });
+  }
   
   const stmt = db.prepare(`INSERT INTO podcasts (title, description, filename, originalname, filesize, file_url) 
                           VALUES (?, ?, ?, ?, ?, ?)`);
