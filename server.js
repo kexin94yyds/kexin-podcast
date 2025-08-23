@@ -12,13 +12,19 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(UPLOADS_DIR));
 
-// 确保uploads目录存在
-fs.ensureDirSync('uploads');
+// 数据存储路径配置
+const DATA_DIR = process.env.NODE_ENV === 'production' ? '/opt/render/project/src/data' : './data';
+const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
+const DB_PATH = path.join(DATA_DIR, 'podcast.db');
+
+// 确保数据目录和uploads目录存在
+fs.ensureDirSync(DATA_DIR);
+fs.ensureDirSync(UPLOADS_DIR);
 
 // 数据库设置
-const db = new sqlite3.Database('podcast.db');
+const db = new sqlite3.Database(DB_PATH);
 
 // 创建播客表
 db.serialize(() => {
@@ -37,7 +43,7 @@ db.serialize(() => {
 // 文件上传配置
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/');
+    cb(null, UPLOADS_DIR);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -306,7 +312,7 @@ app.delete('/api/podcasts/:id', (req, res) => {
     }
     
     // 删除文件
-    const filePath = path.join('uploads', row.filename);
+    const filePath = path.join(UPLOADS_DIR, row.filename);
     fs.unlink(filePath, (unlinkErr) => {
       if (unlinkErr && unlinkErr.code !== 'ENOENT') {
         console.error('删除文件失败:', unlinkErr);

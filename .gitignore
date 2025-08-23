@@ -12,6 +12,7 @@ build/
 
 # 上传的音频文件
 uploads/
+data/
 
 # 系统文件
 .DS_Store
