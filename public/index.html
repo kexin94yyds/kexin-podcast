@@ -1071,7 +1071,7 @@
                             </div>
                             ${podcast.description ? `<div class="podcast-description" style="font-size: 0.85rem; color: rgba(229, 229, 231, 0.6); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${podcast.description}</div>` : ''}
                             <audio style="display: none;" data-filename="${podcast.filename}">
-                                <source src="/uploads/${podcast.filename}" type="audio/mpeg">
+                                <source src="${podcast.file_url || '/uploads/' + podcast.filename}" type="audio/mpeg">
                             </audio>
                         </div>
                         <div class="podcast-controls">
@@ -1138,7 +1138,8 @@
                 }
                 
                 // 设置音频源
-                this.mainAudio.src = `/uploads/${filename}`;
+                const podcastData = this.allPodcasts.find(p => p.filename === filename);
+                this.mainAudio.src = podcastData?.file_url || `/uploads/${filename}`;
                 
                 // 显示全屏播放器
                 document.getElementById('fullscreenPlayer').classList.add('active');

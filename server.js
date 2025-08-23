@@ -4,9 +4,18 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs-extra');
 const cors = require('cors');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Cloudinary配置
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // 数据存储路径配置
 const DATA_DIR = process.env.NODE_ENV === 'production' ? './data' : './data';
@@ -36,20 +45,45 @@ db.serialize(() => {
     originalname TEXT NOT NULL,
     duration TEXT,
     filesize INTEGER,
+    file_url TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
+  
+  // 为现有表添加file_url字段（如果不存在）
+  db.run(`ALTER TABLE podcasts ADD COLUMN file_url TEXT`, (err) => {
+    // 忽略字段已存在的错误
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('添加file_url字段失败:', err.message);
+    }
+  });
 });
 
 // 文件上传配置
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, UPLOADS_DIR);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
+const useCloudinary = process.env.USE_CLOUDINARY === 'true';
+
+let storage;
+if (useCloudinary) {
+  // Cloudinary存储配置
+  storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+      folder: 'podcast-uploads',
+      allowed_formats: ['mp3', 'wav', 'm4a', 'aac', 'ogg'],
+      resource_type: 'video', // 音频文件使用video类型
+    },
+  });
+} else {
+  // 本地存储配置
+  storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, UPLOADS_DIR);
+    },
+    filename: function (req, file, cb) {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, uniqueSuffix + path.extname(file.originalname));
+    }
+  });
+}
 
 const upload = multer({
   storage: storage,
@@ -107,15 +141,20 @@ app.post('/api/upload', upload.single('audio'), (req, res) => {
     return res.status(400).json({ error: '请提供播客标题' });
   }
 
-  const stmt = db.prepare(`INSERT INTO podcasts (title, description, filename, originalname, filesize) 
-                          VALUES (?, ?, ?, ?, ?)`);
+  // 获取文件信息
+  const filename = useCloudinary ? req.file.filename : req.file.filename;
+  const fileUrl = useCloudinary ? req.file.path : `/uploads/${req.file.filename}`;
+  
+  const stmt = db.prepare(`INSERT INTO podcasts (title, description, filename, originalname, filesize, file_url) 
+                          VALUES (?, ?, ?, ?, ?, ?)`);
   
   stmt.run([
     title,
     description || '',
-    req.file.filename,
+    filename,
     req.file.originalname,
-    req.file.size
+    req.file.size || 0,
+    fileUrl
   ], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
