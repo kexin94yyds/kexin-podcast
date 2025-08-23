@@ -84,11 +84,40 @@ npm run dev
 
 ## 部署
 
-这个项目可以轻松部署到各种云平台：
+### 支持Node.js的平台（推荐）
 
-- Heroku
-- Vercel
-- Railway
-- 自己的服务器
+由于这是一个完整的Node.js应用，推荐部署到以下平台：
 
-只需要确保 Node.js 环境和文件系统写入权限即可。
+#### 1. Render（免费，推荐）
+1. 访问 [render.com](https://render.com)
+2. 连接GitHub仓库
+3. 选择 "Web Service"
+4. 构建命令：`npm install`
+5. 启动命令：`npm start`
+6. 自动使用项目中的 `render.yaml` 配置
+
+#### 2. Railway（免费额度）
+1. 访问 [railway.app](https://railway.app)
+2. 连接GitHub仓库
+3. 自动检测Node.js项目并部署
+
+#### 3. Vercel（支持Node.js API）
+1. 访问 [vercel.com](https://vercel.com)
+2. 连接GitHub仓库
+3. 需要配置为Node.js应用
+
+#### 4. Heroku（付费）
+1. 安装Heroku CLI
+2. 创建应用：`heroku create your-app-name`
+3. 推送代码：`git push heroku main`
+
+### ⚠️ 不支持的平台
+
+- **Netlify**：只支持静态网站，不能运行Node.js服务器
+- **GitHub Pages**：只支持静态网站
+
+### 部署要求
+
+- Node.js 环境
+- 文件系统写入权限
+- 持久化存储（用于数据库和上传文件）
