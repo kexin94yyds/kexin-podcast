@@ -1137,8 +1137,7 @@
                     descriptionEl.style.display = 'none';
                 }
                 
-                // 设置音频源
-                const podcastData = this.allPodcasts.find(p => p.filename === filename);
+                // 设置音频源（使用已有的podcastData变量）
                 this.mainAudio.src = podcastData?.file_url || `/uploads/${filename}`;
                 
                 // 显示全屏播放器
