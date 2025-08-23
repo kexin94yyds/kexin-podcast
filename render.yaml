@@ -14,7 +14,7 @@ services:
           name: kexin-podcast
           property: port
       - key: USE_CLOUDINARY
-        value: true
+        value: false
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
