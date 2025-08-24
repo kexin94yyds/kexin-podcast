@@ -6,6 +6,7 @@ const fs = require('fs-extra');
 const cors = require('cors');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const { backupDatabase, restoreDatabase } = require('./db-backup');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -60,6 +61,17 @@ db.serialize(() => {
     if (err && !err.message.includes('duplicate column name')) {
       console.error('添加file_url字段失败:', err.message);
     }
+    
+    // 数据库初始化完成后，尝试从备份恢复数据
+    setTimeout(() => {
+      restoreDatabase().then(count => {
+        if (count > 0) {
+          console.log(`🔄 已从备份恢复 ${count} 条播客记录`);
+        }
+      }).catch(err => {
+        console.log('📝 没有备份文件或恢复失败，这是正常的（首次运行）');
+      });
+    }, 1000);
   });
 });
 
@@ -179,6 +191,13 @@ app.post('/api/upload', upload.single('audio'), (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
+    
+    // 上传成功后立即备份数据库
+    backupDatabase().then(() => {
+      console.log('💾 数据库已自动备份');
+    }).catch(err => {
+      console.error('⚠️ 备份失败:', err.message);
+    });
     
     res.json({
       id: this.lastID,
