@@ -23,6 +23,23 @@ console.log('🌟 Cloudinary配置已加载:', {
   use_cloudinary: process.env.USE_CLOUDINARY
 });
 
+// 详细的Cloudinary诊断
+console.log('🔍 详细诊断信息:');
+console.log('- NODE_ENV:', process.env.NODE_ENV);
+console.log('- USE_CLOUDINARY:', process.env.USE_CLOUDINARY);
+console.log('- CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME ? '✅ 已设置' : '❌ 未设置');
+console.log('- CLOUDINARY_API_KEY:', process.env.CLOUDINARY_API_KEY ? '✅ 已设置' : '❌ 未设置');
+console.log('- CLOUDINARY_API_SECRET:', process.env.CLOUDINARY_API_SECRET ? '✅ 已设置' : '❌ 未设置');
+
+const useCloudinary = process.env.USE_CLOUDINARY === 'true';
+console.log('- useCloudinary 变量:', useCloudinary);
+
+if (useCloudinary) {
+  console.log('✅ 将使用Cloudinary存储');
+} else {
+  console.log('❌ 将使用本地存储 - 这可能是问题所在！');
+}
+
 // 数据存储路径配置
 const DATA_DIR = process.env.NODE_ENV === 'production' ? './data' : './data';
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
@@ -76,7 +93,7 @@ db.serialize(() => {
 });
 
 // 文件上传配置
-const useCloudinary = process.env.USE_CLOUDINARY === 'true';
+// useCloudinary 变量已在上面定义
 
 let storage;
 if (useCloudinary) {
@@ -168,7 +185,9 @@ app.post('/api/upload', upload.single('audio'), (req, res) => {
     filename,
     fileUrl,
     originalname: req.file.originalname,
-    size: req.file.size
+    size: req.file.size,
+    cloudinary_path: req.file.path,
+    cloudinary_public_id: req.file.public_id
   });
   
   // 验证必需字段
