@@ -7,11 +7,9 @@ const cors = require('cors');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { backupDatabase, restoreDatabase } = require('./db-backup');
-const fs = require('fs-extra');
-const path = require('path');
 
-// GitHub数据持久化配置
-const PODCASTS_DATA_FILE = path.join(DATA_DIR, 'podcasts-data.json');
+// GitHub数据持久化配置  
+const PODCASTS_DATA_FILE = './data/podcasts-data.json';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
