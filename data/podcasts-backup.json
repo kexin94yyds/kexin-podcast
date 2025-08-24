@@ -1,0 +1,38 @@
+{
+  "timestamp": "2025-08-24T00:29:30.905Z",
+  "podcasts": [
+    {
+      "id": 5,
+      "title": "boke",
+      "description": "",
+      "filename": "1755992952548-334350558.m4a",
+      "originalname": "æ°å¼å§.m4a",
+      "duration": null,
+      "filesize": 930840,
+      "created_at": "2025-08-23 23:49:12",
+      "file_url": "/uploads/1755992952548-334350558.m4a"
+    },
+    {
+      "id": 4,
+      "title": "All in Vibe Coding",
+      "description": "价值创造之战悄然开始了",
+      "filename": "1755956944948-684001818.m4a",
+      "originalname": "åå·çæé½å¸é½æ±å °å¸è²é³éæ å¢å°åº 62.m4a",
+      "duration": null,
+      "filesize": 3967596,
+      "created_at": "2025-08-23 13:49:04",
+      "file_url": null
+    },
+    {
+      "id": 3,
+      "title": "播客是个新开始",
+      "description": "价值的创造者",
+      "filename": "1755956900078-202956913.m4a",
+      "originalname": "æ°å¼å§.m4a",
+      "duration": null,
+      "filesize": 930840,
+      "created_at": "2025-08-23 13:48:20",
+      "file_url": null
+    }
+  ]
+}

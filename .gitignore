@@ -13,6 +13,7 @@ build/
 # 上传的音频文件
 uploads/
 data/
+!data/podcasts-backup.json
 backup/
 
 # 系统文件
