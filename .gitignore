@@ -14,6 +14,7 @@ build/
 uploads/
 data/
 !data/podcasts-backup.json
+!data/podcasts-data.json
 backup/
 
 # 系统文件

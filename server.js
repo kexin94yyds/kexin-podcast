@@ -7,6 +7,11 @@ const cors = require('cors');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { backupDatabase, restoreDatabase } = require('./db-backup');
+const fs = require('fs-extra');
+const path = require('path');
+
+// GitHub数据持久化配置
+const PODCASTS_DATA_FILE = path.join(DATA_DIR, 'podcasts-data.json');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -44,6 +49,43 @@ if (useCloudinary) {
 const DATA_DIR = process.env.NODE_ENV === 'production' ? './data' : './data';
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 const DB_PATH = path.join(DATA_DIR, 'podcast.db');
+
+// GitHub数据持久化函数
+function savePodcastToGitHub(podcast) {
+  try {
+    let data = { podcasts: [], lastUpdated: new Date().toISOString(), version: "1.0" };
+    
+    if (fs.existsSync(PODCASTS_DATA_FILE)) {
+      data = JSON.parse(fs.readFileSync(PODCASTS_DATA_FILE, 'utf8'));
+    }
+    
+    // 添加新播客
+    data.podcasts.push(podcast);
+    data.lastUpdated = new Date().toISOString();
+    
+    // 保存到文件
+    fs.writeFileSync(PODCASTS_DATA_FILE, JSON.stringify(data, null, 2));
+    console.log('💾 播客数据已保存到GitHub持久化文件');
+    
+    return true;
+  } catch (error) {
+    console.error('❌ 保存到GitHub失败:', error.message);
+    return false;
+  }
+}
+
+function loadPodcastsFromGitHub() {
+  try {
+    if (fs.existsSync(PODCASTS_DATA_FILE)) {
+      const data = JSON.parse(fs.readFileSync(PODCASTS_DATA_FILE, 'utf8'));
+      console.log(`📂 从GitHub加载了 ${data.podcasts.length} 条播客记录`);
+      return data.podcasts;
+    }
+  } catch (error) {
+    console.error('❌ 从GitHub加载失败:', error.message);
+  }
+  return [];
+}
 
 // 中间件
 app.use(cors());
@@ -138,11 +180,22 @@ const upload = multer({
 
 // 获取所有播客
 app.get('/api/podcasts', (req, res) => {
+  // 优先从GitHub数据文件加载
+  const githubPodcasts = loadPodcastsFromGitHub();
+  
+  if (githubPodcasts.length > 0) {
+    console.log(`🎯 使用GitHub数据: ${githubPodcasts.length} 条播客`);
+    res.json(githubPodcasts);
+    return;
+  }
+  
+  // 降级到数据库
   db.all('SELECT * FROM podcasts ORDER BY created_at DESC', (err, rows) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
+    console.log(`📊 使用数据库数据: ${rows.length} 条播客`);
     res.json(rows);
   });
 });
@@ -211,7 +264,23 @@ app.post('/api/upload', upload.single('audio'), (req, res) => {
       return;
     }
     
-    // 上传成功后立即备份数据库
+    // 创建播客对象
+    const podcast = {
+      id: this.lastID,
+      title: title,
+      description: description || '',
+      filename: filename,
+      originalname: req.file.originalname,
+      duration: null,
+      filesize: req.file.size || 0,
+      file_url: fileUrl,
+      created_at: new Date().toISOString()
+    };
+    
+    // 保存到GitHub持久化文件
+    savePodcastToGitHub(podcast);
+    
+    // 同时备份数据库
     backupDatabase().then(() => {
       console.log('💾 数据库已自动备份');
     }).catch(err => {
