@@ -498,6 +498,22 @@ app.get('/upload', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'upload.html'));
 });
 
+// 健康检查端点 - 用于外部监控服务
+app.get('/healthz', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    version: '1.0.0'
+  });
+});
+
+// 简单的ping端点
+app.get('/ping', (req, res) => {
+  res.status(200).send('pong');
+});
+
 // 服务前端静态文件（生产环境）
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'client/build')));
