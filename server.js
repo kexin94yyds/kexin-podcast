@@ -439,32 +439,31 @@ app.delete('/api/podcasts/:id', async (req, res) => {
 
   // 优先从 Supabase 删除
   if (supabase) {
-    const { data: found, error: findErr } = await supabase
-      .from('podcasts')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (!findErr && found) {
-      // 删除 Cloudinary 文件（忽略失败）
-      try {
-        if (found.filename) {
-          await cloudinary.uploader.destroy(found.filename, { resource_type: 'video' });
-        }
-      } catch (e) {
-        console.log('⚠️ 删除 Cloudinary 文件失败（忽略）：', e.message);
-      }
-
-      const { error: delErr } = await supabase
+    const numericId = Number(id);
+    let filenameToDelete = null;
+    try {
+      const { data: found } = await supabase
         .from('podcasts')
-        .delete()
-        .eq('id', id);
+        .select('filename')
+        .eq('id', numericId)
+        .single();
+      filenameToDelete = found?.filename || null;
+    } catch (_) {}
 
-      if (!delErr) {
-        res.json({ message: '播客删除成功' });
-        return;
-      }
+    // 先尝试删除数据库行（即使不存在也不报错，保证幂等）
+    const { error: delErr } = await supabase
+      .from('podcasts')
+      .delete()
+      .eq('id', numericId);
+
+    // 删除 Cloudinary（忽略失败）
+    if (filenameToDelete) {
+      try {
+        await cloudinary.uploader.destroy(filenameToDelete, { resource_type: 'video' });
+      } catch (_) {}
     }
+
+    if (!delErr) { res.json({ message: '播客删除成功' }); return; }
   }
 
   // 回退：SQLite
