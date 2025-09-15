@@ -434,35 +434,53 @@ app.get('/share/:id', (req, res) => {
 });
 
 // 删除播客
-app.delete('/api/podcasts/:id', (req, res) => {
+app.delete('/api/podcasts/:id', async (req, res) => {
   const id = req.params.id;
-  
-  // 先获取文件信息
+
+  // 优先从 Supabase 删除
+  if (supabase) {
+    const { data: found, error: findErr } = await supabase
+      .from('podcasts')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (!findErr && found) {
+      // 删除 Cloudinary 文件（忽略失败）
+      try {
+        if (found.filename) {
+          await cloudinary.uploader.destroy(found.filename, { resource_type: 'video' });
+        }
+      } catch (e) {
+        console.log('⚠️ 删除 Cloudinary 文件失败（忽略）：', e.message);
+      }
+
+      const { error: delErr } = await supabase
+        .from('podcasts')
+        .delete()
+        .eq('id', id);
+
+      if (!delErr) {
+        res.json({ message: '播客删除成功' });
+        return;
+      }
+    }
+  }
+
+  // 回退：SQLite
   db.get('SELECT filename FROM podcasts WHERE id = ?', [id], (err, row) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    
-    if (!row) {
-      res.status(404).json({ error: '播客未找到' });
-      return;
-    }
-    
-    // 删除文件
+    if (err) { res.status(500).json({ error: err.message }); return; }
+    if (!row) { res.status(404).json({ error: '播客未找到' }); return; }
+
     const filePath = path.join(UPLOADS_DIR, row.filename);
     fs.unlink(filePath, (unlinkErr) => {
       if (unlinkErr && unlinkErr.code !== 'ENOENT') {
         console.error('删除文件失败:', unlinkErr);
       }
     });
-    
-    // 从数据库删除记录
-    db.run('DELETE FROM podcasts WHERE id = ?', [id], function(err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
-      }
+
+    db.run('DELETE FROM podcasts WHERE id = ?', [id], function(sqlErr) {
+      if (sqlErr) { res.status(500).json({ error: sqlErr.message }); return; }
       res.json({ message: '播客删除成功' });
     });
   });
