@@ -8,7 +8,7 @@ const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { backupDatabase, restoreDatabase } = require('./db-backup');
 
-// GitHub数据持久化配置  
+// GitHub数据持久化配置（已禁用）
 const PODCASTS_DATA_FILE = './data/podcasts-data.json';
 
 const app = express();
@@ -49,41 +49,11 @@ const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 const DB_PATH = path.join(DATA_DIR, 'podcast.db');
 
 // GitHub数据持久化函数
-function savePodcastToGitHub(podcast) {
-  try {
-    let data = { podcasts: [], lastUpdated: new Date().toISOString(), version: "1.0" };
-    
-    if (fs.existsSync(PODCASTS_DATA_FILE)) {
-      data = JSON.parse(fs.readFileSync(PODCASTS_DATA_FILE, 'utf8'));
-    }
-    
-    // 添加新播客
-    data.podcasts.push(podcast);
-    data.lastUpdated = new Date().toISOString();
-    
-    // 保存到文件
-    fs.writeFileSync(PODCASTS_DATA_FILE, JSON.stringify(data, null, 2));
-    console.log('💾 播客数据已保存到GitHub持久化文件');
-    
-    return true;
-  } catch (error) {
-    console.error('❌ 保存到GitHub失败:', error.message);
-    return false;
-  }
-}
+// 已停用：保存到本地 GitHub 缓存文件
+function savePodcastToGitHub() { return false; }
 
-function loadPodcastsFromGitHub() {
-  try {
-    if (fs.existsSync(PODCASTS_DATA_FILE)) {
-      const data = JSON.parse(fs.readFileSync(PODCASTS_DATA_FILE, 'utf8'));
-      console.log(`📂 从GitHub加载了 ${data.podcasts.length} 条播客记录`);
-      return data.podcasts;
-    }
-  } catch (error) {
-    console.error('❌ 从GitHub加载失败:', error.message);
-  }
-  return [];
-}
+// 已停用：从本地 GitHub 缓存文件读取
+function loadPodcastsFromGitHub() { return []; }
 
 // 中间件
 app.use(cors());
