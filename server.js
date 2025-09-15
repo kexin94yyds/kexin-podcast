@@ -420,7 +420,7 @@ app.get('/share/:id', (req, res) => {
             <i class="fas fa-play" id="playIcon"></i>
         </button>
         <audio controls id="audioPlayer">
-            <source src="/uploads/${row.filename}" type="audio/mpeg">
+            <source src="${row.file_url || ('/uploads/' + row.filename)}" type="audio/mpeg">
             您的浏览器不支持音频播放
         </audio>
     </div>
