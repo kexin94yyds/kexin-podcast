@@ -475,11 +475,15 @@ app.get('/upload', (req, res) => {
 
 // 服务前端静态文件（生产环境）
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'client/build')));
-  
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
-  });
+  const buildDir = path.join(__dirname, 'client/build');
+  if (fs.existsSync(buildDir)) {
+    app.use(express.static(buildDir));
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(buildDir, 'index.html'));
+    });
+  } else {
+    console.log('ℹ️ 跳过 client/build 静态托管（目录不存在）');
+  }
 }
 
 // 启动服务器
