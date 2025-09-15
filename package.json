@@ -15,19 +15,25 @@
     "db-restore": "node db-backup.js restore"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "multer": "^1.4.5-lts.1",
-    "sqlite3": "^5.1.6",
-    "cors": "^2.8.5",
-    "path": "^0.12.7",
-    "fs-extra": "^11.1.1",
+    "@supabase/supabase-js": "^2.57.4",
     "cloudinary": "^1.41.0",
-    "multer-storage-cloudinary": "^4.0.0"
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "fs-extra": "^11.1.1",
+    "multer": "^1.4.5-lts.1",
+    "multer-storage-cloudinary": "^4.0.0",
+    "path": "^0.12.7",
+    "sqlite3": "^5.1.6"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
   },
-  "keywords": ["podcast", "audio", "upload", "播客"],
+  "keywords": [
+    "podcast",
+    "audio",
+    "upload",
+    "播客"
+  ],
   "author": "Your Name",
   "license": "MIT"
 }

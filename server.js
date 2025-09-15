@@ -7,12 +7,17 @@ const cors = require('cors');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { backupDatabase, restoreDatabase } = require('./db-backup');
+const { createSupabaseClient } = require('./supabase-config');
 
 // GitHub数据持久化配置（已禁用）
 const PODCASTS_DATA_FILE = './data/podcasts-data.json';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Supabase 客户端（存在则优先使用）
+const supabase = createSupabaseClient();
+console.log('🗃️ Supabase 启用:', Boolean(supabase));
 
 // Cloudinary配置 - 已启用云存储
 cloudinary.config({
@@ -139,7 +144,7 @@ const upload = multer({
 // API路由
 
 // 获取所有播客
-app.get('/api/podcasts', (req, res) => {
+app.get('/api/podcasts', async (req, res) => {
   // 优先从GitHub数据文件加载
   const githubPodcasts = loadPodcastsFromGitHub();
   
@@ -148,36 +153,55 @@ app.get('/api/podcasts', (req, res) => {
     res.json(githubPodcasts);
     return;
   }
+  // 优先使用 Supabase
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('podcasts')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error('Supabase 查询失败:', error.message);
+    } else if (data) {
+      console.log(`📊 使用 Supabase 数据: ${data.length} 条播客`);
+      res.json(data);
+      return;
+    }
+  }
   
-  // 降级到数据库
+  // 兜底到本地数据库
   db.all('SELECT * FROM podcasts ORDER BY created_at DESC', (err, rows) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    console.log(`📊 使用数据库数据: ${rows.length} 条播客`);
+    console.log(`📊 使用 SQLite 数据: ${rows.length} 条播客`);
     res.json(rows);
   });
 });
 
 // 获取单个播客
-app.get('/api/podcasts/:id', (req, res) => {
+app.get('/api/podcasts/:id', async (req, res) => {
   const id = req.params.id;
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('podcasts')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (!error && data) {
+      res.json(data);
+      return;
+    }
+  }
   db.get('SELECT * FROM podcasts WHERE id = ?', [id], (err, row) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    if (!row) {
-      res.status(404).json({ error: '播客未找到' });
-      return;
-    }
+    if (err) { res.status(500).json({ error: err.message }); return; }
+    if (!row) { res.status(404).json({ error: '播客未找到' }); return; }
     res.json(row);
   });
 });
 
 // 上传播客
-app.post('/api/upload', upload.single('audio'), (req, res) => {
+app.post('/api/upload', upload.single('audio'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: '请选择音频文件' });
   }
@@ -208,52 +232,41 @@ app.post('/api/upload', upload.single('audio'), (req, res) => {
     return res.status(400).json({ error: '文件名获取失败' });
   }
   
-  const stmt = db.prepare(`INSERT INTO podcasts (title, description, filename, originalname, filesize, file_url) 
-                          VALUES (?, ?, ?, ?, ?, ?)`);
-  
-  stmt.run([
-    title,
-    description || '',
-    filename,
-    req.file.originalname,
-    req.file.size || 0,
-    fileUrl
-  ], function(err) {
-    if (err) {
-      res.status(500).json({ error: err.message });
+  // 优先写入 Supabase
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('podcasts')
+      .insert({
+        title: title,
+        description: description || '',
+        filename: filename,
+        originalname: req.file.originalname,
+        duration: null,
+        filesize: req.file.size || 0,
+        file_url: fileUrl
+      })
+      .select('*')
+      .single();
+    if (!error && data) {
+      savePodcastToGitHub(data);
+      res.json({ id: data.id, message: '播客上传成功！', filename: filename });
       return;
     }
-    
-    // 创建播客对象
-    const podcast = {
-      id: this.lastID,
-      title: title,
-      description: description || '',
-      filename: filename,
-      originalname: req.file.originalname,
-      duration: null,
-      filesize: req.file.size || 0,
-      file_url: fileUrl,
-      created_at: new Date().toISOString()
-    };
-    
-    // 保存到GitHub持久化文件
+    if (error) {
+      console.error('Supabase 插入失败，回退到 SQLite:', error.message);
+    }
+  }
+
+  // 回退写入 SQLite
+  const stmt = db.prepare(`INSERT INTO podcasts (title, description, filename, originalname, filesize, file_url) 
+                          VALUES (?, ?, ?, ?, ?, ?)`);
+  stmt.run([title, description || '', filename, req.file.originalname, req.file.size || 0, fileUrl], function(err) {
+    if (err) { res.status(500).json({ error: err.message }); return; }
+    const podcast = { id: this.lastID, title, description: description || '', filename, originalname: req.file.originalname, duration: null, filesize: req.file.size || 0, file_url: fileUrl, created_at: new Date().toISOString() };
     savePodcastToGitHub(podcast);
-    
-    // 同时备份数据库
-    backupDatabase().then(() => {
-      console.log('💾 数据库已自动备份');
-    }).catch(err => {
-      console.error('⚠️ 备份失败:', err.message);
-    });
-    
-    res.json({
-      id: this.lastID,
-      message: '播客上传成功！',
-      filename: req.file.filename
-    });
+    backupDatabase().catch(()=>{});
+    res.json({ id: this.lastID, message: '播客上传成功！', filename: req.file.filename });
   });
-  
   stmt.finalize();
 });
 
