@@ -89,16 +89,8 @@ db.serialize(() => {
       console.error('添加file_url字段失败:', err.message);
     }
     
-    // 数据库初始化完成后，尝试从备份恢复数据
-    setTimeout(() => {
-      restoreDatabase().then(count => {
-        if (count > 0) {
-          console.log(`🔄 已从备份恢复 ${count} 条播客记录`);
-        }
-      }).catch(err => {
-        console.log('📝 没有备份文件或恢复失败，这是正常的（首次运行）');
-      });
-    }, 1000);
+    // 已禁用：启动时从备份恢复旧数据，避免覆盖最新上传
+    console.log('⏭️ 跳过启动时的备份恢复逻辑');
   });
 });
 
